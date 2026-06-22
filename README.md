@@ -40,7 +40,10 @@ template.
 - Core R/SpaDES packages, installed system-wide: `Require`, `reproducible`,
   `SpaDES.core`, `SpaDES.project`, `terra`, `sf`, `data.table`.
 - Claude Code plugins `superpowers` and `claude-hud`, pre-installed and
-  pre-configured during the image build.
+  pre-configured during the image build, and re-applied by `postCreateCommand`
+  on every container creation so they're also present after a rebuild that
+  reuses an existing `claude-code-config-*` volume (named volumes only get
+  seeded from image content the *first* time they're created).
 
 Everything else — `phyloseq`, `DESeq2`, `vegan`, `iNEXT`, `indicspecies`,
 Quarto, etc. — is **not** pre-installed. Pull these in per-project with

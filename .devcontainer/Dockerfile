@@ -145,11 +145,20 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
 # Install Claude
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
-# Pre-install Claude Code plugins so every fresh instance of this template
-# has them ready immediately. This relies on Docker seeding a fresh named
-# volume from the image's directory contents on first mount: devcontainer.json
-# mounts a volume at /home/node/.claude, and whatever exists there in the
-# image becomes that volume's initial content on first container start.
+# Pre-install Claude Code plugins so a brand-new named volume (see
+# devcontainer.json's mounts: /home/node/.claude) starts out pre-seeded and a
+# first-ever container start doesn't need network calls for plugin install.
+#
+# This alone is NOT sufficient for "rebuild always has the HUD": Docker only
+# seeds a named volume from image content the first time that volume is
+# created. On a rebuild that reuses an existing claude-code-config-* volume
+# (the common case -- rebuilding doesn't delete volumes), whatever's baked
+# into the image here is ignored, since the volume already has its own
+# content. devcontainer.json's postCreateCommand re-runs these same two
+# steps directly against the live mounted ~/.claude on every container
+# creation (including rebuilds) to make this idempotent and rebuild-proof --
+# that postCreateCommand is the actual source of truth; this RUN step is
+# just a warm-start optimization.
 #
 # The node runtime path is resolved dynamically ($(command -v node)) rather
 # than hardcoded, since NodeSource's package installs to /usr/bin/node here,

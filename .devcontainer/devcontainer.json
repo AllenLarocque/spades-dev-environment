@@ -52,6 +52,7 @@
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
+  "postCreateCommand": "bash .devcontainer/bake-plugins.sh && node .devcontainer/configure-claude-settings.js \"$(command -v node)\"",
   "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
   "waitFor": "postStartCommand"
 }
