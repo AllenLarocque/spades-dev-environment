@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # own r-base is 4.2.2, but current CRAN packages (e.g. SpaDES.core 3.1.2)
 # require R >= 4.3 and are reported as "not available for this version of R"
 # without this.
-RUN wget -qO- https://cloud.r-project.org/bin/linux/debian/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_debian_key.asc && \
+RUN wget -qO- https://cloud.r-project.org/bin/linux/debian/marutter_pubkey.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/cran_debian_key.gpg && \
   echo "deb https://cloud.r-project.org/bin/linux/debian bookworm-cran40/" >> /etc/apt/sources.list
 
 # Install R and the geospatial system libraries needed by terra/sf/GDAL-based
