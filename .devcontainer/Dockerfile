@@ -113,7 +113,7 @@ RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 # volume from the image's directory contents on first mount: devcontainer.json
 # mounts a volume at /home/node/.claude, and whatever exists there in the
 # image becomes that volume's initial content on first container start.
-COPY bake-plugins.sh configure-claude-settings.js /tmp/
+COPY --chown=node:node bake-plugins.sh configure-claude-settings.js /tmp/
 RUN chmod +x /tmp/bake-plugins.sh && \
   /tmp/bake-plugins.sh && \
   node /tmp/configure-claude-settings.js /usr/local/bin/node && \
