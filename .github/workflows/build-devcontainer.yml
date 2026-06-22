@@ -16,7 +16,7 @@ jobs:
       - name: Build and smoke-test devcontainer
         uses: devcontainers/ci@v0.3
         with:
-          imageName: ghcr.io/${{ github.repository }}/devcontainer
+          imageName: ghcr.io/spades-dev-environment/devcontainer-ci
           push: never
           runCmd: |
             set -e
