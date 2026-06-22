@@ -30,9 +30,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Add CRAN's apt repository so r-base is a current release. Debian bookworm's
 # own r-base is 4.2.2, but current CRAN packages (e.g. SpaDES.core 3.1.2)
 # require R >= 4.3 and are reported as "not available for this version of R"
-# without this.
-RUN wget -qO- https://cloud.r-project.org/bin/linux/debian/marutter_pubkey.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/cran_debian_key.gpg && \
-  echo "deb https://cloud.r-project.org/bin/linux/debian bookworm-cran40/" >> /etc/apt/sources.list
+# without this. Key fetched via keyserver per CRAN's documented "Secure apt"
+# instructions (https://cloud.r-project.org/bin/linux/debian/) -- the old
+# marutter_pubkey.asc URL some guides reference now 404s.
+RUN apt-get update && apt-get install -y --no-install-recommends dirmngr \
+  && apt-get clean && rm -rf /var/lib/apt/lists/* \
+  && gpg --keyserver keyserver.ubuntu.com --recv-key '95C0FAF38DB3CCAD0C080A7BDC78B2DDEABC47B7' \
+  && gpg --armor --export '95C0FAF38DB3CCAD0C080A7BDC78B2DDEABC47B7' | tee /etc/apt/trusted.gpg.d/cran_debian_key.asc \
+  && echo "deb https://cloud.r-project.org/bin/linux/debian bookworm-cran46/" >> /etc/apt/sources.list
 
 # Install R and the geospatial system libraries needed by terra/sf/GDAL-based
 # SpaDES workflows (e.g. LandR Biomass)
