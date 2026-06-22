@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 'use strict';
 
-// Pre-configures the claude-hud statusline and disables the extra
-// --dangerously-skip-permissions confirmation prompt, baked into the image
-// at /home/node/.claude so a fresh named volume (mounted there by
-// devcontainer.json) is seeded with this content on first container start.
+// Pre-configures the claude-hud statusline and display options, and
+// disables the extra --dangerously-skip-permissions confirmation prompt,
+// baked into the image at /home/node/.claude so a fresh named volume
+// (mounted there by devcontainer.json) is seeded with this content on first
+// container start.
 //
 // Usage: node configure-claude-settings.js <node-runtime-path>
 
@@ -14,6 +15,7 @@ const os = require('os');
 
 const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
 const settingsPath = path.join(claudeDir, 'settings.json');
+const hudConfigPath = path.join(claudeDir, 'plugins', 'claude-hud', 'config.json');
 const runtimePath = process.argv[2];
 
 if (!runtimePath) {
@@ -52,3 +54,54 @@ json.skipDangerousModePermissionPrompt = true;
 
 fs.writeFileSync(settingsPath, JSON.stringify(json, null, 2) + '\n');
 console.log(`Wrote statusLine + skipDangerousModePermissionPrompt to ${settingsPath}`);
+
+// Unlike settings.json above, this file is left alone if it already exists:
+// it's the same file /claude-hud:configure writes to, so once a volume has
+// one (seeded by us or hand-edited by the user), reapplying our defaults on
+// every rebuild would silently discard their customization.
+if (!fs.existsSync(hudConfigPath)) {
+  const hudConfig = {
+    language: 'en',
+    lineLayout: 'expanded',
+    showSeparators: false,
+    display: {
+      showModel: true,
+      showContextBar: true,
+      showTools: true,
+      showSkills: true,
+      showMcp: true,
+      showAgents: true,
+      showTodos: true,
+      showProject: true,
+      showAddedDirs: true,
+      showConfigCounts: true,
+      showTokenBreakdown: true,
+      showSpeed: true,
+      showCost: true,
+      showUsage: true,
+      showResetLabel: true,
+      showSessionName: true,
+      showDuration: true,
+      showSessionTokens: true,
+      showEffortLevel: true,
+      showOutputStyle: true,
+      showMemoryUsage: true,
+      showPromptCache: true,
+      showClaudeCodeVersion: true,
+      showCompactions: true,
+      showAdvisor: true,
+    },
+    gitStatus: {
+      enabled: true,
+      showDirty: true,
+      showAheadBehind: false,
+      showFileStats: false,
+    },
+  };
+
+  fs.mkdirSync(path.dirname(hudConfigPath), { recursive: true });
+  fs.writeFileSync(hudConfigPath, JSON.stringify(hudConfig, null, 2) + '\n');
+  console.log(`Wrote claude-hud display config to ${hudConfigPath}`);
+} else {
+  console.log(`claude-hud display config already exists at ${hudConfigPath}, leaving it alone`);
+}
