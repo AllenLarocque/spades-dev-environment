@@ -1,0 +1,3 @@
+[submodule "resources/spades.ai"]
+	path = resources/spades.ai
+	url = https://github.com/AllenLarocque/spades.ai.git
