@@ -63,8 +63,32 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install the core SpaDES R package ecosystem (system-wide library, so it's
-# available to the node user without a per-project install step)
-RUN Rscript -e "install.packages(c('Require', 'reproducible', 'SpaDES.core', 'SpaDES.project', 'terra', 'sf', 'data.table'), repos = 'https://cloud.r-project.org', Ncpus = parallel::detectCores())"
+# available to the node user without a per-project install step).
+#
+# Repos, in resolution order:
+#  - Posit Package Manager's bookworm binary repo: prebuilt binaries matched
+#    to Debian bookworm's system libraries, avoiding source compilation of
+#    heavy geospatial packages (terra/sf/s2) against whatever GDAL/GEOS/PROJ
+#    apt happens to ship -- compiling terra from source here failed with a
+#    GDAL API mismatch against bookworm's libgdal-dev.
+#  - predictiveecology.r-universe.dev: SpaDES.project is not on CRAN at all
+#    (only GitHub/r-universe), so it needs this repo to resolve.
+#  - cloud.r-project.org: CRAN, as the final source-build fallback.
+#
+# install.packages() does not make Rscript exit non-zero when an individual
+# package fails to install -- it only warns -- so the explicit check after
+# the install call is what actually fails the build on a partial install.
+RUN Rscript -e " \
+  pkgs <- c('Require', 'reproducible', 'SpaDES.core', 'SpaDES.project', 'terra', 'sf', 'data.table'); \
+  options(repos = c( \
+    PPM = 'https://packagemanager.posit.co/cran/__linux__/bookworm/latest', \
+    PredictiveEcology = 'https://predictiveecology.r-universe.dev', \
+    CRAN = 'https://cloud.r-project.org' \
+  )); \
+  install.packages(pkgs, Ncpus = parallel::detectCores()); \
+  missing <- setdiff(pkgs, rownames(installed.packages())); \
+  if (length(missing) > 0) stop('Failed to install: ', paste(missing, collapse = ', ')); \
+  "
 
 # Ensure default node user has access to /usr/local/share
 RUN mkdir -p /usr/local/share/npm-global && \
