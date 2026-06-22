@@ -27,6 +27,14 @@ template.
 
 ## What's pre-installed
 
+- R 4.5.3, via the [`rocker/r-ver`](https://rocker-project.org) base image
+  (Ubuntu noble) rather than a generic Linux image with R bolted on — rocker
+  builds R from source with a matched Posit Package Manager binary snapshot
+  preconfigured as the default repo, which is what lets `terra`/`sf` install
+  as prebuilt binaries instead of compiling from source against whatever
+  GDAL/GEOS/PROJ a generic distro image happens to ship. Node.js (for Claude
+  Code) is installed on top of this R-first base via NodeSource, not the
+  other way around.
 - System libraries for `terra`/`sf`/GDAL-based SpaDES workflows (e.g. LandR
   Biomass): GDAL, GEOS, PROJ, udunits2, and friends.
 - Core R/SpaDES packages, installed system-wide: `Require`, `reproducible`,
