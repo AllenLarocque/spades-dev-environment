@@ -76,6 +76,7 @@ for domain in \
     "cloud.r-project.org" \
     "bioconductor.org" \
     "packagemanager.posit.co" \
+    "p3m.dev" \
     "predictiveecology.r-universe.dev" \
     "raw.githubusercontent.com" \
     "codeload.github.com" \
