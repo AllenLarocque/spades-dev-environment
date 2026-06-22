@@ -1,0 +1,19 @@
+# Project content brought in under projects/ — each user's own project repos
+projects/*
+!projects/README.md
+!projects/.gitkeep
+
+# Windows artifacts that show up when data is copied from a Windows machine
+desktop.ini
+*:Zone.Identifier
+
+# OS junk
+.DS_Store
+
+# R session artifacts
+.Rhistory
+.RData
+.Rproj.user/
+
+# Google Drive service-account key — never commit credentials
+*gdrive-key.json
