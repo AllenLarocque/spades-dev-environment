@@ -1,4 +1,4 @@
-FROM node:20
+FROM rocker/r-ver:4.5.3
 
 ARG TZ
 ENV TZ="$TZ"
@@ -25,25 +25,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   jq \
   nano \
   vim \
+  curl \
+  ca-certificates \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Add CRAN's apt repository so r-base is a current release. Debian bookworm's
-# own r-base is 4.2.2, but current CRAN packages (e.g. SpaDES.core 3.1.2)
-# require R >= 4.3 and are reported as "not available for this version of R"
-# without this. Key fetched via keyserver per CRAN's documented "Secure apt"
-# instructions (https://cloud.r-project.org/bin/linux/debian/) -- the old
-# marutter_pubkey.asc URL some guides reference now 404s.
-RUN apt-get update && apt-get install -y --no-install-recommends dirmngr \
-  && apt-get clean && rm -rf /var/lib/apt/lists/* \
-  && gpg --keyserver keyserver.ubuntu.com --recv-key '95C0FAF38DB3CCAD0C080A7BDC78B2DDEABC47B7' \
-  && gpg --armor --export '95C0FAF38DB3CCAD0C080A7BDC78B2DDEABC47B7' | tee /etc/apt/trusted.gpg.d/cran_debian_key.asc \
-  && echo "deb https://cloud.r-project.org/bin/linux/debian bookworm-cran46/" >> /etc/apt/sources.list
+# Install Node.js. rocker/r-ver's Ubuntu base doesn't include it -- the
+# node:20 image this Dockerfile used to be based on provided Node for free,
+# but R itself is the part that needs precise version/library matching, so
+# this Dockerfile is now R-first with Node added on top, via NodeSource's
+# setup script for the same Node 20.x major version as before.
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+  apt-get install -y --no-install-recommends nodejs && \
+  apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install R and the geospatial system libraries needed by terra/sf/GDAL-based
-# SpaDES workflows (e.g. LandR Biomass)
+# Install the geospatial system libraries needed by terra/sf/GDAL-based
+# SpaDES workflows (e.g. LandR Biomass). R itself is already provided by the
+# rocker/r-ver base image, built and configured specifically to match the
+# Posit Package Manager binary snapshot it also configures as the default
+# CRAN mirror -- this is what lets terra/sf/s2 install as prebuilt binaries
+# below instead of compiling from source against whatever GDAL/GEOS/PROJ
+# happens to be on the system.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  r-base \
-  r-base-dev \
   libcurl4-openssl-dev \
   libssl-dev \
   libxml2-dev \
@@ -65,30 +67,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install the core SpaDES R package ecosystem (system-wide library, so it's
 # available to the node user without a per-project install step).
 #
-# Repos, in resolution order:
-#  - Posit Package Manager's bookworm binary repo: prebuilt binaries matched
-#    to Debian bookworm's system libraries, avoiding source compilation of
-#    heavy geospatial packages (terra/sf/s2) against whatever GDAL/GEOS/PROJ
-#    apt happens to ship -- compiling terra from source here failed with a
-#    GDAL API mismatch against bookworm's libgdal-dev.
-#  - predictiveecology.r-universe.dev: SpaDES.project is not on CRAN at all
-#    (only GitHub/r-universe), so it needs this repo to resolve.
-#  - cloud.r-project.org: CRAN, as the final source-build fallback.
+# predictiveecology.r-universe.dev is added because SpaDES.project isn't on
+# CRAN at all (GitHub/r-universe only) -- everything else resolves through
+# the base image's preconfigured Posit Package Manager repo as prebuilt
+# binaries.
 #
 # install.packages() does not make Rscript exit non-zero when an individual
 # package fails to install -- it only warns -- so the explicit check after
 # the install call is what actually fails the build on a partial install.
 RUN Rscript -e " \
   pkgs <- c('Require', 'reproducible', 'SpaDES.core', 'SpaDES.project', 'terra', 'sf', 'data.table'); \
-  options(repos = c( \
-    PPM = 'https://packagemanager.posit.co/cran/__linux__/bookworm/latest', \
-    PredictiveEcology = 'https://predictiveecology.r-universe.dev', \
-    CRAN = 'https://cloud.r-project.org' \
-  )); \
+  options(repos = c(PredictiveEcology = 'https://predictiveecology.r-universe.dev', getOption('repos'))); \
   install.packages(pkgs, Ncpus = parallel::detectCores()); \
   missing <- setdiff(pkgs, rownames(installed.packages())); \
   if (length(missing) > 0) stop('Failed to install: ', paste(missing, collapse = ', ')); \
   "
+
+# Create the non-root "node" user. The node:20 image provided one by
+# default; rocker/r-ver's Ubuntu base does not, and deliberately frees up
+# uid 1000 for exactly this purpose.
+RUN useradd --create-home --shell /bin/bash --uid 1000 node
 
 # Ensure default node user has access to /usr/local/share
 RUN mkdir -p /usr/local/share/npm-global && \
@@ -149,10 +147,15 @@ RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 # volume from the image's directory contents on first mount: devcontainer.json
 # mounts a volume at /home/node/.claude, and whatever exists there in the
 # image becomes that volume's initial content on first container start.
+#
+# The node runtime path is resolved dynamically ($(command -v node)) rather
+# than hardcoded, since NodeSource's package installs to /usr/bin/node here,
+# not /usr/local/bin/node like the old node:20 base image -- hardcoding it
+# would have baked a wrong path into the HUD statusline command.
 COPY --chown=node:node bake-plugins.sh configure-claude-settings.js /tmp/
 RUN chmod +x /tmp/bake-plugins.sh && \
   /tmp/bake-plugins.sh && \
-  node /tmp/configure-claude-settings.js /usr/local/bin/node && \
+  node /tmp/configure-claude-settings.js "$(command -v node)" && \
   rm /tmp/bake-plugins.sh /tmp/configure-claude-settings.js
 
 
