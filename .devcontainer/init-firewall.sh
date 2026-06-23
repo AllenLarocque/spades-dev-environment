@@ -78,6 +78,7 @@ for domain in \
     "packagemanager.posit.co" \
     "p3m.dev" \
     "predictiveecology.r-universe.dev" \
+    "bioc.r-universe.dev" \
     "raw.githubusercontent.com" \
     "codeload.github.com" \
     "objects.githubusercontent.com" \
