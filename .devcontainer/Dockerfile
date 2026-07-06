@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   gh \
   iptables \
   ipset \
+  dnsmasq \
   iproute2 \
   dnsutils \
   aggregate \

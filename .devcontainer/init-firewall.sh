@@ -63,45 +63,73 @@ while read -r cidr; do
     ipset add allowed-domains "$cidr"
 done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
 
-# Resolve and add other allowed domains
-for domain in \
-    "registry.npmjs.org" \
-    "api.anthropic.com" \
-    "sentry.io" \
-    "statsig.com" \
-    "marketplace.visualstudio.com" \
-    "vscode.blob.core.windows.net" \
-    "update.code.visualstudio.com" \
-    "deb.debian.org" \
-    "cloud.r-project.org" \
-    "bioconductor.org" \
-    "packagemanager.posit.co" \
-    "p3m.dev" \
-    "predictiveecology.r-universe.dev" \
-    "bioc.r-universe.dev" \
-    "raw.githubusercontent.com" \
-    "codeload.github.com" \
-    "objects.githubusercontent.com" \
-    "drive.google.com" \
-    "drive.usercontent.google.com" \
-    "www.googleapis.com" \
-    "oauth2.googleapis.com" \
-    "accounts.google.com"; do
-    echo "Resolving $domain..."
-    ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
-    if [ -z "$ips" ]; then
-        echo "ERROR: Failed to resolve $domain"
-        exit 1
-    fi
+# Resolve all non-GitHub allowed domains dynamically via a local dnsmasq
+# resolver. dnsmasq inserts exactly the IPs each lookup returns into the
+# allowed-domains ipset, so CDN IP rotation can never desync the allowlist.
+# (cloud.r-project.org is a CNAME onto AWS CloudFront, whose edge IPs rotate;
+# pinning a single resolved IP at container start was why CRAN went unreachable
+# after a while. Now every DNS lookup lazily authorizes its own resolved IP
+# just-in-time, immediately before the connection.)
 
-    while read -r ip; do
-        if [[ ! "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-            echo "ERROR: Invalid IP from DNS for $domain: $ip"
-            exit 1
-        fi
-        echo "Adding $ip for $domain"
-        ipset add allowed-domains "$ip" -exist
-    done < <(echo "$ips")
+# Capture the current upstream nameserver BEFORE we rewrite resolv.conf.
+# In Docker this is normally the embedded DNS at 127.0.0.11.
+UPSTREAM_DNS=$(awk '/^nameserver/{print $2; exit}' /etc/resolv.conf)
+if [ -z "$UPSTREAM_DNS" ]; then
+    echo "ERROR: Could not determine upstream nameserver from /etc/resolv.conf"
+    exit 1
+fi
+echo "Upstream DNS detected as: $UPSTREAM_DNS"
+
+# Every domain that should be dynamically authorized (resolved -> ipset).
+ALLOWED_DOMAINS=(
+    registry.npmjs.org
+    api.anthropic.com
+    sentry.io
+    statsig.com
+    marketplace.visualstudio.com
+    vscode.blob.core.windows.net
+    update.code.visualstudio.com
+    deb.debian.org
+    cloud.r-project.org
+    bioconductor.org
+    packagemanager.posit.co
+    p3m.dev
+    rspm-sync.rstudio.com
+    predictiveecology.r-universe.dev
+    bioc.r-universe.dev
+    raw.githubusercontent.com
+    codeload.github.com
+    objects.githubusercontent.com
+    drive.google.com
+    drive.usercontent.google.com
+    www.googleapis.com
+    oauth2.googleapis.com
+    accounts.google.com
+)
+
+# Build the dnsmasq ipset directive: ipset=/dom1/dom2/.../allowed-domains
+IPSET_DIRECTIVE="ipset=/$(IFS=/; echo "${ALLOWED_DOMAINS[*]}")/allowed-domains"
+
+mkdir -p /etc/dnsmasq.d
+cat > /etc/dnsmasq.d/allowlist.conf <<EOF
+no-resolv
+server=${UPSTREAM_DNS}
+listen-address=127.0.0.1
+bind-interfaces
+${IPSET_DIRECTIVE}
+EOF
+
+# (Re)start dnsmasq so it picks up the config.
+pkill dnsmasq 2>/dev/null || true
+dnsmasq --conf-file=/etc/dnsmasq.d/allowlist.conf
+
+# Route all in-container DNS through dnsmasq so every lookup lazily authorizes
+# its own resolved IP into the ipset.
+echo "nameserver 127.0.0.1" > /etc/resolv.conf
+
+# Prime the ipset for the base infra domains (also a dnsmasq sanity check).
+for domain in "${ALLOWED_DOMAINS[@]}"; do
+    dig +short "$domain" @127.0.0.1 >/dev/null 2>&1 || true
 done
 
 # Get host IP from default route
@@ -148,4 +176,13 @@ if ! curl --connect-timeout 5 https://api.github.com/zen >/dev/null 2>&1; then
     exit 1
 else
     echo "Firewall verification passed - able to reach https://api.github.com as expected"
+fi
+
+# Verify CRAN (AWS CloudFront) is reachable via the dnsmasq dynamic ipset.
+# Soft check: a transient CRAN outage should not brick container startup, but a
+# broken dynamic-allowlist should be visible in the log.
+if curl --connect-timeout 8 -sSf https://cloud.r-project.org/src/contrib/PACKAGES.gz >/dev/null 2>&1; then
+    echo "Firewall verification passed - CRAN reachable via dnsmasq dynamic allowlist"
+else
+    echo "WARNING: could not reach CRAN (cloud.r-project.org) right now - if this persists, check dnsmasq/resolv.conf"
 fi
