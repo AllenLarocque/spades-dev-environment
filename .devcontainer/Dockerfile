@@ -66,6 +66,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libjpeg-dev \
   libmagick++-dev \
   libglpk-dev \
+  cmake \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install the core SpaDES R package ecosystem (system-wide library, so it's
