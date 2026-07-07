@@ -100,6 +100,12 @@ ALLOWED_DOMAINS=(
     raw.githubusercontent.com
     codeload.github.com
     objects.githubusercontent.com
+    # FunGuild database hosts (assign fungal guilds in R via FUNGuildR):
+    # mycoportal.org is FunGuild's current maintained home; stbates.org is the
+    # legacy endpoint FUNGuildR's get_funguild_db() defaults to. Base domains
+    # match subdomains (www.*) too.
+    mycoportal.org
+    stbates.org
     drive.google.com
     drive.usercontent.google.com
     www.googleapis.com
