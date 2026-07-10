@@ -92,6 +92,11 @@ ALLOWED_DOMAINS=(
     deb.debian.org
     cloud.r-project.org
     bioconductor.org
+    # Bioconductor's alternate download mirror (source tarballs). pak/BiocManager
+    # fall back to mghp.osn.xsede.org for some packages; without this, Bioc source
+    # installs warn "Failed to connect to mghp.osn.xsede.org". Base domain matches
+    # the mghp.* subdomain.
+    osn.xsede.org
     packagemanager.posit.co
     p3m.dev
     rspm-sync.rstudio.com
