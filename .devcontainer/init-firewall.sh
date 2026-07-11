@@ -116,6 +116,13 @@ ALLOWED_DOMAINS=(
     www.googleapis.com
     oauth2.googleapis.com
     accounts.google.com
+    # Require's connectivity canary. Require::internetExists() probes
+    # https://www.google.com (2s timeout) to decide online vs offline; when it is
+    # blocked, Require::setOfflineModeTRUE() flips Require.offlineMode = TRUE and
+    # every package install falls into the offline-cache path and fails — even
+    # though CRAN/Bioc/cache are all fine. Allowlisting it keeps SpaDES/Require on
+    # its normal online install path.
+    www.google.com
 )
 
 # Build the dnsmasq ipset directive: ipset=/dom1/dom2/.../allowed-domains
