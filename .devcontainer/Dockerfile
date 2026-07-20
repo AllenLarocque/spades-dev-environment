@@ -80,8 +80,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # install.packages() does not make Rscript exit non-zero when an individual
 # package fails to install -- it only warns -- so the explicit check after
 # the install call is what actually fails the build on a partial install.
+#
+# marginaleffects (+ insight, its hard dep) is baked in HERE rather than left to
+# setupProject()/Require at runtime: Require resolves a broader dependency set than
+# install.packages()'s hard-deps default, and marginaleffects' full Suggests graph
+# (478 pkgs) transitively needs `Icens` (a Bioconductor pkg our repos don't expose),
+# which makes the whole solve fail. install.packages() here pulls hard deps only
+# (Depends/Imports/LinkingTo -- 8 pkgs, no Icens), so it installs cleanly into the
+# system library; setupProject then finds it already present and skips the bad solve.
 RUN Rscript -e " \
-  pkgs <- c('Require', 'reproducible', 'SpaDES.core', 'SpaDES.project', 'terra', 'sf', 'data.table'); \
+  pkgs <- c('Require', 'reproducible', 'SpaDES.core', 'SpaDES.project', 'terra', 'sf', 'data.table', \
+            'marginaleffects', 'insight'); \
   options(repos = c(PredictiveEcology = 'https://predictiveecology.r-universe.dev', getOption('repos'))); \
   install.packages(pkgs, Ncpus = parallel::detectCores()); \
   missing <- setdiff(pkgs, rownames(installed.packages())); \
