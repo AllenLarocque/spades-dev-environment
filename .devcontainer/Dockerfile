@@ -90,6 +90,20 @@ RUN Rscript -e " \
   if (length(missing) > 0) stop('Failed to install: ', paste(missing, collapse = ', ')); \
   "
 
+# Miniforge (conda) + a PICRUSt2 env (bioconda) for functional prediction from the DADA2
+# ASVs (repSeqs FASTA + seqtab). PICRUSt2 bundles HMMER/EPA-ng/gappa/SEPP + its ~1GB reference
+# data via conda -- there is no clean pip path. Build-time install (full network, before the
+# runtime firewall). conda is NOT put on the global PATH (would shadow the system python/R
+# toolchain); invoke as `/opt/conda/envs/picrust2/bin/picrust2_pipeline.py` or `conda run -n
+# picrust2 ...`. Reused later for the QIIME2 classify-sklearn comparison env.
+ENV CONDA_DIR=/opt/conda
+RUN curl -fsSL "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-$(uname -m).sh" -o /tmp/miniforge.sh \
+  && bash /tmp/miniforge.sh -b -p "$CONDA_DIR" \
+  && rm /tmp/miniforge.sh \
+  && "$CONDA_DIR/bin/conda" create -y -n picrust2 -c conda-forge -c bioconda picrust2=2.5.2 \
+  && "$CONDA_DIR/bin/conda" clean -afy \
+  && chmod -R a+rX "$CONDA_DIR"
+
 # Create the non-root "node" user. The node:20 image provided one by
 # default; rocker/r-ver's Ubuntu base does not, and deliberately frees up
 # uid 1000 for exactly this purpose.

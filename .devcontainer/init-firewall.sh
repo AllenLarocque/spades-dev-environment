@@ -139,6 +139,11 @@ ALLOWED_DOMAINS=(
     # at build time in the Dockerfile).
     pypi.org
     files.pythonhosted.org
+    # conda channels for the PICRUSt2 env (bioconda/conda-forge). The env is built at Docker
+    # build time (full network), so these are mainly for any runtime conda ops / env rebuilds.
+    conda.anaconda.org
+    repo.anaconda.com
+    anaconda.org
 )
 
 # Build the dnsmasq ipset directive: ipset=/dom1/dom2/.../allowed-domains
