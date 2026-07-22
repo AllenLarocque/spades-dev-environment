@@ -67,6 +67,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libmagick++-dev \
   libglpk-dev \
   cmake \
+  cutadapt \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install the core SpaDES R package ecosystem (system-wide library, so it's
