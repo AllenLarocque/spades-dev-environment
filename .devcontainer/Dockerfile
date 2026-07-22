@@ -68,6 +68,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libglpk-dev \
   cmake \
   cutadapt \
+  fasttree \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install the core SpaDES R package ecosystem (system-wide library, so it's

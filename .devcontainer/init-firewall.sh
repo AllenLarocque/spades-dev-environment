@@ -123,6 +123,22 @@ ALLOWED_DOMAINS=(
     # though CRAN/Bioc/cache are all fine. Allowlisting it keeps SpaDES/Require on
     # its normal online install path.
     www.google.com
+    # Amplicon reference databases for the R-native DADA2/DECIPHER taxonomy pipeline
+    # (prepInputs downloads these; IdTaxa trains on them). Base domains match subdomains.
+    #   ITS  -> UNITE general release (unite.ut.ee + its plutof/HPC file hosts)
+    unite.ut.ee
+    files.plutof.ut.ee
+    s3.hpc.ut.ee
+    #   DECIPHER data + pre-trained classifiers (16S SILVA/GTDB IdTaxa training sets)
+    www2.decipher.codes
+    #   16S -> SILVA
+    arb-silva.de
+    #   COI  -> COInr (Meglecz 2023, Zenodo record 6555985); also a general FAIR data host
+    zenodo.org
+    # Python package headroom (future runtime pip installs; cutadapt itself is apt-installed
+    # at build time in the Dockerfile).
+    pypi.org
+    files.pythonhosted.org
 )
 
 # Build the dnsmasq ipset directive: ipset=/dom1/dom2/.../allowed-domains
