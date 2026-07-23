@@ -125,9 +125,14 @@ ALLOWED_DOMAINS=(
     www.google.com
     # Amplicon reference databases for the R-native DADA2/DECIPHER taxonomy pipeline
     # (prepInputs downloads these; IdTaxa trains on them). Base domains match subdomains.
-    #   ITS  -> UNITE general release (unite.ut.ee + its plutof/HPC file hosts)
+    #   ITS  -> UNITE general release. The UNITE release is fetched by its DOI
+    #   (e.g. 10.15156/BIO/2938070), which resolves through a redirect chain:
+    #   doi.org -> a plutof landing/handle -> the file host (s3.hpc.ut.ee /
+    #   files.plutof.ut.ee). The WHOLE chain must be allowlisted or prepInputs
+    #   can't follow it. plutof.ut.ee (base) covers the doi./files. subdomains.
+    doi.org
     unite.ut.ee
-    files.plutof.ut.ee
+    plutof.ut.ee
     s3.hpc.ut.ee
     #   DECIPHER data + pre-trained classifiers (16S SILVA/GTDB IdTaxa training sets)
     www2.decipher.codes
