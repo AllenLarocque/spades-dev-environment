@@ -102,6 +102,13 @@ ALLOWED_DOMAINS=(
     rspm-sync.rstudio.com
     predictiveecology.r-universe.dev
     bioc.r-universe.dev
+    # r-universe serves its PACKAGES index from *.r-universe.dev but 302-redirects
+    # the actual package tarballs to r2.ropensci.org (Cloudflare R2 object store).
+    # Without this, pak reads the index fine but every source download fails
+    # ("Failed to download SpaDES.core/reproducible/quickPlot (source)"), so the
+    # SpaDES runtime stack never lands in the standAlone lib and setupProject is
+    # left relying on the image's site-library copy (which standAlone=TRUE hides).
+    r2.ropensci.org
     raw.githubusercontent.com
     codeload.github.com
     objects.githubusercontent.com
