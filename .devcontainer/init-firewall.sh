@@ -156,6 +156,21 @@ ALLOWED_DOMAINS=(
     conda.anaconda.org
     repo.anaconda.com
     anaconda.org
+    # QIIME 2. The oracle OTU table this project validates against was produced by
+    # `qiime feature-classifier classify-sklearn` against the PREBUILT UNITE artifact
+    # `unite_ver9_dynamic_s_all_25.07.2023-Q2-2024.2.qza`, so we need QIIME 2 hosts to
+    #   (a) inspect that artifact's provenance (which UNITE variant + fit parameters it
+    #       was trained from) so our scikit-learn re-implementation is a like-for-like
+    #       comparison rather than a confounded one, and
+    #   (b) keep the documented fallback open: if the re-implementation underperforms its
+    #       acceptance bar, we install real QIIME 2 via conda and call it directly.
+    # Base qiime2.org covers data./packages./library./docs./forum./view. subdomains.
+    # data.qiime2.org is a redirector -- the artifacts themselves are served from the
+    # qiime2-data S3 bucket, so the S3 host must be allowlisted too or the chain breaks
+    # (same failure mode as the doi.org -> plutof -> s3.hpc.ut.ee chain above).
+    qiime2.org
+    s3-us-west-2.amazonaws.com
+    qiime2-data.s3.us-west-2.amazonaws.com
 )
 
 # Build the dnsmasq ipset directive: ipset=/dom1/dom2/.../allowed-domains
