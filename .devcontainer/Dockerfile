@@ -101,8 +101,27 @@ RUN curl -fsSL "https://github.com/conda-forge/miniforge/releases/latest/downloa
   && bash /tmp/miniforge.sh -b -p "$CONDA_DIR" \
   && rm /tmp/miniforge.sh \
   && "$CONDA_DIR/bin/conda" create -y -n picrust2 -c conda-forge -c bioconda picrust2=2.5.2 \
+  && "$CONDA_DIR/bin/conda" create -y -n sklearn -c conda-forge \
+       python=3.12 scikit-learn=1.9 joblib numpy scipy biopython \
   && "$CONDA_DIR/bin/conda" clean -afy \
   && chmod -R a+rX "$CONDA_DIR"
+
+# The `sklearn` env above backs the naive-Bayes classifier engine (q2-feature-classifier's
+# recipe: HashingVectorizer char_wb 7-mers/8192/alternate_sign=False -> MultinomialNB
+# alpha=0.001 fit_prior=False), reached from R via reticulate. It is a SEPARATE env from
+# picrust2 on purpose: picrust2 pins Python 3.8, which cannot host scikit-learn >= 1.7, so
+# sharing one env would make the classifier's reproducibility hostage to an unrelated tool.
+# Invoke as /opt/conda/envs/sklearn/bin/python (conda stays off the global PATH).
+#
+# uv is also installed as a general Python tool: the system python has no pip and no ensurepip,
+# so `python3 -m venv` FAILS, and /opt/conda is root-owned and unwritable at runtime. uv is the
+# only way to build a throwaway user-space Python env after the image is built.
+RUN curl -fsSL "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-unknown-linux-gnu.tar.gz" \
+      -o /tmp/uv.tar.gz \
+  && tar xzf /tmp/uv.tar.gz -C /tmp \
+  && install -m 0755 /tmp/uv-x86_64-unknown-linux-gnu/uv /usr/local/bin/uv \
+  && rm -rf /tmp/uv.tar.gz /tmp/uv-x86_64-unknown-linux-gnu \
+  && uv --version
 
 # Create the non-root "node" user. The node:20 image provided one by
 # default; rocker/r-ver's Ubuntu base does not, and deliberately frees up
