@@ -48,11 +48,13 @@
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",
-    "POWERLEVEL9K_DISABLE_GITSTATUS": "true"
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
+    "GH_CONFIG_DIR": "/home/node/.claude/gh",
+    "GH_PAT_FROM_HOST": "${localEnv:GH_PAT}"
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
   "postCreateCommand": "bash .devcontainer/bake-plugins.sh && node .devcontainer/configure-claude-settings.js \"$(command -v node)\"",
-  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh && bash .devcontainer/setup-github-auth.sh",
   "waitFor": "postStartCommand"
 }
