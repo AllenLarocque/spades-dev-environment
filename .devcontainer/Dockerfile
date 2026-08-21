@@ -47,6 +47,12 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 # CRAN mirror -- this is what lets terra/sf/s2 install as prebuilt binaries
 # below instead of compiling from source against whatever GDAL/GEOS/PROJ
 # happens to be on the system.
+# mafft is the aligner buildAmpliconTree PREFERS: resolveAlignMethod("auto") picks it when
+# present and otherwise falls back to DECIPHER::AlignSeqs. Without it a 16S production run
+# OOM-killed the box -- AlignSeqs needs an O(n^2) guide-tree distance structure, which at
+# 117,895 ASVs is ~111 GB against 117 GB of RAM. mafft --auto drops to PartTree/FFT-NS-2 at that
+# scale, which is built for 100k+ sequences. It is also what the QIIME2 oracle used
+# (align-to-tree-mafft-fasttree), so it improves reproduction parity as well as memory headroom.
 RUN apt-get update && apt-get install -y --no-install-recommends \
   libcurl4-openssl-dev \
   libssl-dev \
@@ -69,6 +75,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   cmake \
   cutadapt \
   fasttree \
+  mafft \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install the core SpaDES R package ecosystem (system-wide library, so it's
