@@ -17,3 +17,8 @@ desktop.ini
 
 # Google Drive service-account key — never commit credentials
 *gdrive-key.json
+
+# Claude Code memory notes, mirrored here because a devcontainer rebuild wipes $HOME.
+# Personal working notes, not repo content — restore with:
+#   cp -a /workspace/.claude-memory-backup/. /home/node/.claude/projects/-workspace/memory/
+.claude-memory-backup/
