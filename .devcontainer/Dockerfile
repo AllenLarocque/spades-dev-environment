@@ -35,8 +35,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # node:20 image this Dockerfile used to be based on provided Node for free,
 # but R itself is the part that needs precise version/library matching, so
 # this Dockerfile is now R-first with Node added on top, via NodeSource's
-# setup script for the same Node 20.x major version as before.
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+# setup script. Pinned to 22.x rather than the 20.x carried over from that
+# old base image: @anthropic-ai/claude-code declares engines.node >=22, and
+# installing it under Node 20 warns EBADENGINE. Bump this when Claude Code
+# raises that floor again.
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
   apt-get install -y --no-install-recommends nodejs && \
   apt-get clean && rm -rf /var/lib/apt/lists/*
 
