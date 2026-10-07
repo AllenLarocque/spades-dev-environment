@@ -171,6 +171,16 @@ ALLOWED_DOMAINS=(
     qiime2.org
     s3-us-west-2.amazonaws.com
     qiime2-data.s3.us-west-2.amazonaws.com
+    # EMBL-EBI: ENA data deposit (spades_bioinformatics, spec 2026-10-05 ENA deposit Spec 1).
+    # The base domain covers every host the deposit uses:
+    #   www.ebi.ac.uk      -- ENA checklists (ena/browser/api/xml/ERC000022), the production
+    #                         Webin drop-box (ena/submit/drop-box/submit/), and OLS4 (ENVO ids)
+    #   wwwdev.ebi.ac.uk   -- the Webin TEST server (submissions wiped every 24 h)
+    #   webin2.ebi.ac.uk   -- FTP upload area for the read files. The rule below allows every
+    #                         port to an allowlisted IP, so FTP control (21) and the data channel
+    #                         work as long as the data channel goes to the same host (libcurl
+    #                         uses EPSV, which reuses the control connection's IP).
+    ebi.ac.uk
 )
 
 # Build the dnsmasq ipset directive: ipset=/dom1/dom2/.../allowed-domains
